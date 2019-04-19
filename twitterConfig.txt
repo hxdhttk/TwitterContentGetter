@@ -1,0 +1,3 @@
+thumbPath=>D:\Pictures\twitter
+origPath=>D:\Pictures\twitterOrig
+origUrlTemplate=>https://pbs.twimg.com/media/%s:orig
