@@ -26,11 +26,6 @@ let parseConfig () =
         OrigUrlTemplate = (Printf.StringFormat<string -> string>)parsedDict.["origUrlTemplate"]
     }
 
-let deleteAll path =
-    path
-    |> Directory.EnumerateFiles
-    |> Seq.iter File.Delete
-
 let isNetworkAvailable () =
     NetworkInterface.GetIsNetworkAvailable()
 
@@ -47,20 +42,22 @@ let run() =
             |> Directory.EnumerateFiles
             |> Seq.map (fun filePath ->
                 let file = FileInfo filePath
-                file.Name, sprintf origUrlTemplate file.Name)
+                filePath, file.Name, sprintf origUrlTemplate file.Name)
         
         use httpClient = new HttpClient()
         for origImgRequestParam in origImgRequestParams do
-            let name, url = origImgRequestParam
-            let origImagePath = sprintf @"%s\%s" origPath name
+            let thumbFilePath, thumbFilename, origFileUrl = origImgRequestParam
+            let origImagePath = sprintf @"%s\%s" origPath thumbFilename
             if File.Exists(origImagePath) then
                 ()
             else
-                let response = httpClient.GetByteArrayAsync(url).Result
-                use imageFile = new FileStream(origImagePath, FileMode.OpenOrCreate)
-                imageFile.Write(response, 0, response.Length)
-                printfn "%s" origImagePath
-
-        deleteAll thumbPath
+                try
+                    let response = httpClient.GetByteArrayAsync(origFileUrl).Result
+                    use imageFile = new FileStream(origImagePath, FileMode.OpenOrCreate)
+                    imageFile.Write(response, 0, response.Length)
+                    printfn "%s" origImagePath
+                    File.Delete(thumbFilePath)
+                with
+                | _ -> ()
 
 run()
