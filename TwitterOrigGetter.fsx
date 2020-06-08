@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.Net
 open System.Net.Http
 open System.Net.NetworkInformation
 
@@ -9,6 +10,7 @@ type TwitterConfig = {
     ThumbPath: string
     OrigPath: string
     OrigUrlTemplate: Printf.StringFormat<string -> string>
+    Proxy: string
 }
 
 let parseConfig () = 
@@ -24,6 +26,7 @@ let parseConfig () =
         ThumbPath = parsedDict.["thumbPath"]
         OrigPath = parsedDict.["origPath"]
         OrigUrlTemplate = (Printf.StringFormat<string -> string>)parsedDict.["origUrlTemplate"]
+        Proxy = parsedDict.["proxy"]
     }
 
 let isNetworkAvailable () =
@@ -36,20 +39,24 @@ let run() =
         let thumbPath = config.ThumbPath
         let origPath = config.OrigPath
         let origUrlTemplate = config.OrigUrlTemplate
+        let proxy = config.Proxy
         
         let origImgRequestParams = 
             thumbPath
             |> Directory.EnumerateFiles
             |> Seq.map (fun filePath ->
                 let file = FileInfo filePath
-                filePath, file.Name, sprintf origUrlTemplate file.Name)
+                let fileName = file.Name.Substring(0, file.Name.Length - file.Extension.Length)
+                filePath, fileName, sprintf origUrlTemplate fileName)
         
-        use httpClient = new HttpClient()
+        use handler = new HttpClientHandler()
+        handler.Proxy <- WebProxy(proxy)
+        use httpClient = new HttpClient(handler)
         for origImgRequestParam in origImgRequestParams do
             let thumbFilePath, thumbFilename, origFileUrl = origImgRequestParam
-            let origImagePath = sprintf @"%s\%s" origPath thumbFilename
+            let origImagePath = sprintf @"%s\%s.jpg" origPath thumbFilename
             if File.Exists(origImagePath) then
-                ()
+                File.Delete(thumbFilePath)
             else
                 try
                     let response = httpClient.GetByteArrayAsync(origFileUrl).Result

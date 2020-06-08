@@ -1,3 +1,4 @@
-thumbPath=>D:\Pictures\twitter
-origPath=>D:\Pictures\twitterOrig
-origUrlTemplate=>https://pbs.twimg.com/media/%s:orig
+thumbPath=>D:\TempPics\twitter
+origPath=>D:\Pictures\netPics
+origUrlTemplate=>https://pbs.twimg.com/media/%s?format=jpg&name=large
+proxy=>127.0.0.1:10809
