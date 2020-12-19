@@ -1,6 +1,4 @@
-#r "System.Net.Http.dll"
-
-open System
+﻿open System
 open System.IO
 open System.Net
 open System.Net.Http
@@ -13,8 +11,32 @@ type TwitterConfig = {
     Proxy: string
 }
 
+module Logger =
+    let logPath = Directory.GetCurrentDirectory() + @"\log.txt"
+
+    let mutable logStream: StreamWriter = null
+
+    let start () =
+        if File.Exists(logPath) then
+            let logFile = FileInfo(logPath)
+            logFile.Delete()
+
+        let logFile = File.CreateText(logPath)
+        logStream <- logFile
+
+
+    let log (msg: string) =
+        if logStream = null then
+            start()
+            logStream.WriteLine(msg)
+        else
+            logStream.WriteLine(msg)
+
+        logStream.Flush()
+            
+
 let parseConfig () = 
-    let configPath = __SOURCE_DIRECTORY__ + @"\twitterConfig.txt"
+    let configPath = Directory.GetCurrentDirectory() + @"\twitterConfig.txt"
     let lines = File.ReadAllLines(configPath)
     let parsedDict = 
         lines
@@ -62,9 +84,14 @@ let run() =
                     let response = httpClient.GetByteArrayAsync(origFileUrl).Result
                     use imageFile = new FileStream(origImagePath, FileMode.OpenOrCreate)
                     imageFile.Write(response, 0, response.Length)
-                    printfn "%s" origImagePath
+                    Logger.log (sprintf "%s" origImagePath)
                     File.Delete(thumbFilePath)
                 with
                 | _ -> ()
 
-run()
+
+
+[<EntryPoint>]
+let main argv =
+    run()
+    0
