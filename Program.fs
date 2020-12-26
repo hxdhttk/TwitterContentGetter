@@ -7,7 +7,7 @@ open System.Net.NetworkInformation
 type TwitterConfig = {
     ThumbPath: string
     OrigPath: string
-    OrigUrlTemplate: Printf.StringFormat<string -> string>
+    OrigUrlTemplate: Printf.StringFormat<string -> string -> string>
     Proxy: string
 }
 
@@ -47,7 +47,7 @@ let parseConfig () =
     {
         ThumbPath = parsedDict.["thumbPath"]
         OrigPath = parsedDict.["origPath"]
-        OrigUrlTemplate = (Printf.StringFormat<string -> string>)parsedDict.["origUrlTemplate"]
+        OrigUrlTemplate = (Printf.StringFormat<string -> string -> string>)parsedDict.["origUrlTemplate"]
         Proxy = parsedDict.["proxy"]
     }
 
@@ -69,14 +69,15 @@ let run() =
             |> Seq.map (fun filePath ->
                 let file = FileInfo filePath
                 let fileName = file.Name.Substring(0, file.Name.Length - file.Extension.Length)
-                filePath, fileName, sprintf origUrlTemplate fileName)
+                let fileExtenion = file.Extension.Substring(1)
+                filePath, fileName, fileExtenion, sprintf origUrlTemplate fileName fileExtenion)
         
         use handler = new HttpClientHandler()
         handler.Proxy <- WebProxy(proxy)
         use httpClient = new HttpClient(handler)
         for origImgRequestParam in origImgRequestParams do
-            let thumbFilePath, thumbFilename, origFileUrl = origImgRequestParam
-            let origImagePath = sprintf @"%s\%s.jpg" origPath thumbFilename
+            let thumbFilePath, thumbFilename, thumbFileExtention, origFileUrl = origImgRequestParam
+            let origImagePath = sprintf @"%s\%s.%s" origPath thumbFilename thumbFileExtention
             if File.Exists(origImagePath) then
                 File.Delete(thumbFilePath)
             else
@@ -85,10 +86,11 @@ let run() =
                     use imageFile = new FileStream(origImagePath, FileMode.OpenOrCreate)
                     imageFile.Write(response, 0, response.Length)
                     Logger.log (sprintf "%s" origImagePath)
-                    File.Delete(thumbFilePath)
+                    if File.Exists(origImagePath) then
+                        File.Delete(thumbFilePath)
                 with
-                | _ -> ()
-
+                | ex -> 
+                    Logger.log (sprintf "Failed to request %s with the following exception: %s" thumbFilePath (ex.ToString()))
 
 
 [<EntryPoint>]
