@@ -1,4 +1,4 @@
 thumbPath=>D:\TempPics\Twitter
 origPath=>D:\Pictures\NetPics
-origUrlTemplate=>https://pbs.twimg.com/media/%s?format=%s&name=4096x4096
+origUrlTemplate=>https://pbs.twimg.com/media/%s.%s:orig
 proxy=>127.0.0.1:10809
